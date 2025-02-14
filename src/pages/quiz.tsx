@@ -1,5 +1,5 @@
 import { GetServerSideProps } from "next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { fetchQuizzes } from "../lib/api";
@@ -28,28 +28,28 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   const [userAnswers, setUserAnswers] = useState<{ question: string; correctAnswer: string; selectedAnswer: string }[]>([]);
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [timeLeft, setTimeLeft] = useState(12);
-  const [userId, setUserId] = useState("guest");
   const [countdown, setCountdown] = useState(3);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showStartText, setShowStartText] = useState(false);
   const router = useRouter();
   const category = router.query.category as string;
 
+  // ✅ クイズデータをデバッグ
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedUserId = sessionStorage.getItem("userId") || "guest";
-      setUserId(storedUserId);
-    }
-  }, []);
+    console.log("取得したクイズデータ:", quizzes);
+  }, [quizzes]);
 
   useEffect(() => {
-    if (quizzes.length > 0) {
-      const shuffled = shuffleArray(quizzes).map((q) => ({
-        ...q,
-        choices: shuffleArray(q.choices),
-      }));
-      setShuffledQuizzes(shuffled);
+    if (!quizzes || quizzes.length === 0) {
+      console.warn("⚠ クイズデータが空です。");
+      return;
     }
+
+    const shuffled = shuffleArray(quizzes).map((q) => ({
+      ...q,
+      choices: shuffleArray(q.choices),
+    }));
+    setShuffledQuizzes(shuffled);
   }, [quizzes]);
 
   useEffect(() => {
@@ -57,40 +57,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
     setTimeLeft(12);
   }, [currentQuestionIndex, quizStarted]);
 
-  useEffect(() => {
-    if (!quizStarted) return;
-    if (timeLeft <= 0) {
-      handleTimeout();
-      return;
-    }
-
-    const timerId = setTimeout(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearTimeout(timerId);
-  }, [timeLeft, quizStarted]);
-
-  useEffect(() => {
-    const countdownTimer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === 1) {
-          clearInterval(countdownTimer);
-          setShowStartText(true);
-          setTimeout(() => {
-            setQuizStarted(true);
-            setShowStartText(false);
-            setTimeLeft(12);
-          }, 1000);
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(countdownTimer);
-  }, []);
-
-  const handleTimeout = () => {
+  const handleTimeout = useCallback(() => {
     if (feedback) return;
 
     const question = shuffledQuizzes[currentQuestionIndex];
@@ -115,7 +82,40 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
         setCurrentQuestionIndex((prev) => prev + 1);
       }
     }, 1000);
-  };
+  }, [currentQuestionIndex, shuffledQuizzes, feedback, score, category, router, userAnswers]);
+
+  useEffect(() => {
+    if (!quizStarted) return;
+    if (timeLeft <= 0) {
+      handleTimeout();
+      return;
+    }
+
+    const timerId = setTimeout(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timerId);
+  }, [timeLeft, quizStarted, handleTimeout]);
+
+  useEffect(() => {
+    const countdownTimer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === 1) {
+          clearInterval(countdownTimer);
+          setShowStartText(true);
+          setTimeout(() => {
+            setQuizStarted(true);
+            setShowStartText(false);
+            setTimeLeft(12);
+          }, 1000);
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownTimer);
+  }, []);
 
   if (!quizStarted) {
     return (
@@ -123,29 +123,11 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
         <div className="text-center text-6xl md:text-9xl lg:text-10xl font-bold animate-fadeIn">
           {showStartText ? "🎯 スタート！" : ` ${countdown}`}
         </div>
-  
-        {/* フェードインアニメーション */}
-        <style jsx>{`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: scale(0.8);
-            }
-            to {
-              opacity: 1;
-              transform: scale(1);
-            }
-          }
-          .animate-fadeIn {
-            animation: fadeIn 0.8s ease-in-out;
-          }
-        `}</style>
       </div>
     );
   }
-  
 
-  if (shuffledQuizzes.length === 0) {
+  if (!shuffledQuizzes || shuffledQuizzes.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#f5e6ca] text-gray-900 px-4 text-2xl font-bold text-center">
         🚫 クイズがありません。別のカテゴリーを試してください。
@@ -154,6 +136,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   }
 
   const question = shuffledQuizzes[currentQuestionIndex];
+  if (!question) return null;
 
   const handleAnswer = (choice: string) => {
     if (feedback) return;
@@ -186,14 +169,12 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#f5e6ca] text-gray-900 px-4 pt-12">
-      {/* タイマーエリア */}
       <div className="w-full max-w-4xl flex justify-center mb-6">
         <div className="text-3xl md:text-4xl font-bold bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg">
-           {timeLeft} 秒
+          ⏳ {timeLeft} 秒
         </div>
       </div>
 
-      {/* 問題エリア */}
       <div className="relative bg-white p-8 sm:p-10 md:p-16 rounded-lg shadow-xl w-full max-w-4xl text-center">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">{question?.question}</h2>
 
@@ -203,7 +184,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
           </div>
         )}
 
-        {/* 選択肢 (中央揃え) */}
+        {/* 選択肢 */}
         <div className="mt-8 md:mt-10 space-y-8 flex flex-col items-center w-full">
           {question.choices.map((choice, index) => (
             <button
@@ -216,25 +197,35 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
           ))}
         </div>
 
-        {/* 正誤判定（⭕️❌） */}
+        {/* ⭕️❌表示 */}
         {feedback && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
             <span className={`text-8xl font-bold ${feedback === "correct" ? "text-green-500" : "text-red-500"}`}>
               {feedback === "correct" ? "⭕️" : "❌"}
             </span>
           </div>
         )}
+        
       </div>
     </div>
   );
 };
 
+
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const category = context.query.category as string;
-  const quizzes = (await fetchQuizzes(category)) || [];
+  let quizzes: Quiz[] = [];
+
+  try {
+    quizzes = await fetchQuizzes(category);
+    console.log(`✅ クイズデータ (${category}):`, quizzes);
+  } catch (error) {
+    console.error("❌ クイズ取得エラー:", error);
+  }
 
   return {
-    props: { quizzes },
+    props: { quizzes: quizzes || [] },
   };
 };
 

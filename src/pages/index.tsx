@@ -18,7 +18,6 @@ export default function Home() {
   const [categories, setCategories] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [categoryAccuracy, setCategoryAccuracy] = useState<{ [key: string]: { totalAttempts: number; correctAnswers: number } }>({});
-  const [userId, setUserId] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
 
@@ -26,12 +25,11 @@ export default function Home() {
     const auth = sessionStorage.getItem("authenticated");
     if (!auth) {
       router.push("/password");
-    } else {
-      setIsAuthenticated(true);
+      return;
     }
+    setIsAuthenticated(true);
 
     const storedUserId = sessionStorage.getItem("userId");
-    setUserId(storedUserId);
 
     if (storedUserId) {
       const registeredUsers: User[] = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
@@ -45,7 +43,7 @@ export default function Home() {
     }
 
     fetchCategories().then(setCategories);
-  }, []);
+  }, [router]); // ✅ `router` を依存配列に追加
 
   const updateCategoryAccuracy = (userId: string) => {
     const accuracyData = JSON.parse(localStorage.getItem(`accuracy_${userId}`) || "{}");
@@ -64,7 +62,7 @@ export default function Home() {
       return { nickname: user.nickname, clearCount };
     });
 
-    rankingsData.sort((a: Ranking, b: Ranking) => b.clearCount - a.clearCount);
+    rankingsData.sort((a, b) => b.clearCount - a.clearCount);
     setRankings(rankingsData);
   };
 

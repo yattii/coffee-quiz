@@ -11,9 +11,8 @@ export default function Layout({ children }: LayoutProps) {
   >([]);
 
   useEffect(() => {
-    const icons = ["☕️"];
-    const newItems = Array.from({ length: 18 }).map((_, index) => {
-      const isCoffeeBean = Math.random() < 0.5; // **コーヒー豆の出現率を高める (70%)**
+    const newItems = Array.from({ length: 20 }).map((_, index) => {
+      const isCoffeeBean = Math.random() < 0.6; // **コーヒー豆の出現率を高める (70%)**
       return {
         id: index,
         left: Math.random() * 100, // 横位置をランダムに
@@ -22,23 +21,24 @@ export default function Layout({ children }: LayoutProps) {
           <Image
             src="/coffee-bean-removebg-preview.png" // **コーヒー豆の画像**
             alt="Coffee Bean"
-            width={50} // **サイズを統一**
+            width={50}
             height={50}
+            priority // ✅ ビルド時の最適化
             className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16"
           />
         ) : (
-          <span className="text-4xl md:text-5xl lg:text-6xl">☕️</span> // **サイズを統一**
+          <span className="text-4xl md:text-5xl lg:text-6xl">☕️</span>
         ),
       };
     });
 
     setFallingItems(newItems);
-  }, []);
+  }, []); // ✅ 依存配列を `[]` にして `useEffect` が 1 回だけ実行されるように
 
   return (
-    <div className="relative min-h-screen bg-[#f5e6ca] text-gray-900 overflow-visible">
-      {/* ✅ 背景アニメーション (fixed でスクロール後も消えない) */}
-      <div className="fixed inset-0 w-full h-[200vh] overflow-visible">
+    <div className="relative min-h-screen bg-[#f5e6ca] text-gray-900">
+      {/* ✅ 背景アニメーション */}
+      <div className="fixed inset-0 w-full h-full pointer-events-none">
         {fallingItems.map((item) => (
           <span
             key={item.id}
@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
             transform: translateY(-5%) rotate(0deg);
           }
           100% {
-            transform: translateY(120vh) rotate(360deg); /* 画面外まで落下 */
+            transform: translateY(110vh) rotate(360deg); /* 画面外まで落下 */
           }
         }
 
@@ -72,7 +72,7 @@ export default function Layout({ children }: LayoutProps) {
           position: absolute;
           animation-name: fall;
           animation-timing-function: linear;
-          animation-duration: 5s; /* 速度は変更せず維持 */
+          animation-duration: 7s; /* 速度調整 */
           animation-iteration-count: infinite;
           animation-fill-mode: forwards;
         }

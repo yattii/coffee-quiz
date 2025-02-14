@@ -9,7 +9,6 @@ interface ReviewQuestion {
 
 // **カウントダウンの秒数**
 const COUNTDOWN_TIME = 5;
-const SHOW_ANSWER_TIME = 2;
 const START_COUNTDOWN = 3; // ✅ **カウントダウン開始時間**
 
 export default function ReviewPage() {
@@ -45,7 +44,7 @@ export default function ReviewPage() {
         router.push("/result");
       }
     }
-  }, []);
+  }, [router]);
 
   // ✅ **復習開始前のカウントダウン処理**
   useEffect(() => {
