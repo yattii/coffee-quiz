@@ -29,20 +29,22 @@ export interface Quiz {
   order?: number;
 }
 
-// **デバッグログ**
-console.log("✅ 環境変数:", { MICROCMS_SERVICE_DOMAIN, MICROCMS_API_KEY_QUIZ });
+// ✅ **環境変数のデバッグ**
+console.log("✅ 環境変数のチェック:");
+console.log("📌 MICROCMS_SERVICE_DOMAIN:", MICROCMS_SERVICE_DOMAIN || "⚠ 環境変数が設定されていません");
+console.log("📌 MICROCMS_API_KEY_QUIZ:", MICROCMS_API_KEY_QUIZ ? "✅ 設定済み" : "⚠ 環境変数が設定されていません");
 
 // **クイズを取得**
 export const fetchQuizzes = async (category: string): Promise<Quiz[]> => {
   try {
-    console.log("✅ 取得カテゴリー:", category);
-
-    const res = await axios.get<{ contents: MicroCMSQuiz[] }>(
-      `https://${MICROCMS_SERVICE_DOMAIN}.microcms.io/api/v1/quiz?filters=category[equals]${category}`,
-      {
-        headers: { "X-MICROCMS-API-KEY": MICROCMS_API_KEY_QUIZ }, // ✅ `MICROCMS_API_KEY_QUIZ` を使用
-      }
-    );
+    console.log("✅ クイズ取得開始 - カテゴリー:", category);
+    
+    const apiUrl = `https://${MICROCMS_SERVICE_DOMAIN}.microcms.io/api/v1/quiz?filters=category[equals]${category}`;
+    console.log("📌 API URL:", apiUrl);
+    
+    const res = await axios.get<{ contents: MicroCMSQuiz[] }>(apiUrl, {
+      headers: { "X-MICROCMS-API-KEY": MICROCMS_API_KEY_QUIZ },
+    });
 
     console.log("✅ APIレスポンス:", res.data);
 
@@ -79,12 +81,14 @@ export const fetchQuizzes = async (category: string): Promise<Quiz[]> => {
 // **カテゴリーを取得**
 export const fetchCategories = async (): Promise<string[]> => {
   try {
-    const res = await axios.get<{ contents: MicroCMSQuiz[] }>(
-      `https://${MICROCMS_SERVICE_DOMAIN}.microcms.io/api/v1/quiz`,
-      {
-        headers: { "X-MICROCMS-API-KEY": MICROCMS_API_KEY_QUIZ }, // ✅ `MICROCMS_API_KEY_QUIZ` を使用
-      }
-    );
+    console.log("✅ カテゴリー取得開始");
+
+    const apiUrl = `https://${MICROCMS_SERVICE_DOMAIN}.microcms.io/api/v1/quiz`;
+    console.log("📌 API URL:", apiUrl);
+
+    const res = await axios.get<{ contents: MicroCMSQuiz[] }>(apiUrl, {
+      headers: { "X-MICROCMS-API-KEY": MICROCMS_API_KEY_QUIZ },
+    });
 
     console.log("✅ カテゴリー API レスポンス:", res.data.contents);
 
@@ -99,6 +103,8 @@ export const fetchCategories = async (): Promise<string[]> => {
     ];
 
     categories.sort((a, b) => a.order - b.order);
+    
+    console.log("✅ 取得したカテゴリー:", categories.map((cat) => cat.name));
     return categories.map((cat) => cat.name);
   } catch (error) {
     console.error("❌ カテゴリーの取得に失敗:", error);
