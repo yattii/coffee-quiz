@@ -17,3 +17,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     </>
   );
 }
+
+// git add .
+// git commit -m "fix"
+// git push origin main
