@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
+import { saveUser, getUser } from "../lib/firestore"; // ✅ Firestore 連携
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -8,21 +9,8 @@ export default function RegisterPage() {
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
 
-  // ✅ **登録済みのユーザーを取得**
-  const getRegisteredUsers = (): { userId: string; nickname: string }[] => {
-    try {
-      const usersData = localStorage.getItem("registeredUsers");
-      if (!usersData) return [];
-      const users = JSON.parse(usersData);
-      return Array.isArray(users) ? users : [];
-    } catch (error) {
-      console.error("ユーザー取得エラー:", error);
-      return [];
-    }
-  };
-
-  // ✅ **ユーザー登録処理**
-  const handleRegister = () => {
+  // ✅ **ユーザー登録処理（Firestore へ保存）**
+  const handleRegister = async () => {
     if (!/^\d+$/.test(userId)) {
       setError("ユーザーIDは数字のみで入力してください。");
       return;
@@ -32,22 +20,20 @@ export default function RegisterPage() {
       return;
     }
 
-    const users = getRegisteredUsers();
-    if (!Array.isArray(users)) {
-      setError("登録データの取得に失敗しました。");
-      return;
+    try {
+      const existingUser = await getUser(userId);
+      if (existingUser) {
+        setError("このユーザーIDはすでに登録されています。");
+        return;
+      }
+
+      await saveUser(userId, nickname);
+      alert("ユーザー登録が完了しました！ログインしてください。");
+      router.push("/password");
+    } catch (error) {
+      console.error("❌ ユーザー登録エラー:", error);
+      setError("登録処理中にエラーが発生しました。");
     }
-
-    if (users.some((user) => user?.userId === userId)) {
-      setError("このユーザーIDはすでに登録されています。");
-      return;
-    }
-
-    users.push({ userId, nickname });
-    localStorage.setItem("registeredUsers", JSON.stringify(users));
-
-    alert("ユーザー登録が完了しました！ログインしてください。");
-    router.push("/password");
   };
 
   return (

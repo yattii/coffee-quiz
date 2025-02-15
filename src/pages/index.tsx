@@ -1,12 +1,8 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { fetchCategories } from "../lib/api";
+import { fetchCategories } from "../lib/api"; // ✅ microCMSからカテゴリーを取得
+import { fetchCategoryAccuracy, fetchRankings, getUser } from "../lib/firestore"; // ✅ Firestoreを利用
 import Layout from "@/components/Layout";
-
-interface User {
-  userId: string;
-  nickname: string;
-}
 
 interface Ranking {
   nickname: string;
@@ -20,65 +16,96 @@ export default function Home() {
   const [categoryAccuracy, setCategoryAccuracy] = useState<{ [key: string]: { totalAttempts: number; correctAnswers: number } }>({});
   const [nickname, setNickname] = useState<string | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("🔍 [Home] ページマウント時にデータ取得開始");
+
     const auth = sessionStorage.getItem("authenticated");
     if (!auth) {
+      console.warn("⚠ [認証エラー] ログインしていないためリダイレクト");
       router.push("/password");
       return;
     }
     setIsAuthenticated(true);
 
     const storedUserId = sessionStorage.getItem("userId");
-
-    if (storedUserId) {
-      const registeredUsers: User[] = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-      const user = registeredUsers.find((user) => user.userId === storedUserId);
-      if (user) {
-        setNickname(user.nickname);
-      }
-
-      updateCategoryAccuracy(storedUserId);
-      updateRankings(registeredUsers);
+    if (!storedUserId) {
+      console.error("❌ [エラー] sessionStorage に userId がありません。");
+      return;
     }
+    console.log(`🔍 [ユーザーID] ${storedUserId}`);
 
-    fetchCategories().then(setCategories);
-  }, [router]); // ✅ `router` を依存配列に追加
+    // 🔥 **データ取得処理を並行処理**
+    const fetchData = async () => {
+      try {
+        console.log("🔄 [データ取得] Firestore & microCMS からデータ取得開始");
 
-  const updateCategoryAccuracy = (userId: string) => {
-    const accuracyData = JSON.parse(localStorage.getItem(`accuracy_${userId}`) || "{}");
-    setCategoryAccuracy(accuracyData);
-  };
+        const [user, microCMSCategories, accuracyData, rankingData] = await Promise.all([
+          getUser(storedUserId).catch((err: unknown) => {
+            console.error("❌ [getUser] ユーザー情報の取得に失敗:", err);
+            return null;
+          }),
+          fetchCategories().catch((err: unknown) => {
+            console.error("❌ [fetchMicroCMSCategories] microCMS のカテゴリー取得に失敗:", err);
+            return [];
+          }),
+          fetchCategoryAccuracy(storedUserId).catch((err: unknown) => {
+            console.error("❌ [fetchCategoryAccuracy] 正答率データの取得に失敗:", err);
+            return {};
+          }),
+          fetchRankings().catch((err: unknown) => {
+            console.error("❌ [fetchRankings] ランキングデータの取得に失敗:", err);
+            return [];
+          }),
+        ]);
 
-  const updateRankings = (users: User[]) => {
-    const rankingsData: Ranking[] = users.map((user) => {
-      const accuracyData: { [key: string]: { totalAttempts: number; correctAnswers: number } } =
-        JSON.parse(localStorage.getItem(`accuracy_${user.userId}`) || "{}");
+        console.log("✅ [データ取得完了]", {
+          user,
+          microCMSCategories,
+          accuracyData,
+          rankingData,
+        });
 
-      const clearCount = Object.values(accuracyData).filter(
-        (data) => data.correctAnswers === data.totalAttempts && data.totalAttempts > 0
-      ).length;
+        if (user) setNickname(user.nickname);
+        setCategories(microCMSCategories || []);
+        setCategoryAccuracy(accuracyData || {});
+        setRankings(rankingData || []);
+      } catch (error) {
+        console.error("❌ [データ取得エラー] fetchData 処理中にエラーが発生:", error);
+      } finally {
+        setLoading(false);
+        console.log("🏁 [データ取得完了]");
+      }
+    };
 
-      return { nickname: user.nickname, clearCount };
-    });
-
-    rankingsData.sort((a, b) => b.clearCount - a.clearCount);
-    setRankings(rankingsData);
-  };
+    fetchData();
+  }, [router]);
 
   const handleLogout = () => {
+    console.log("🚪 [ログアウト] ユーザーがログアウトしました");
     sessionStorage.removeItem("authenticated");
     sessionStorage.removeItem("userId");
-    sessionStorage.removeItem("previousLogin");
     router.push("/password");
   };
 
   const handleCategorySelect = (category: string) => {
+    console.log(`📚 [カテゴリー選択] ${category}`);
     router.push(`/quiz?category=${category}`);
   };
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen text-2xl font-bold">
+          🔄 データを読み込んでいます...
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -92,7 +119,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ✅ カテゴリー選択 (スクロール可能) */}
+        {/* ✅ カテゴリー選択 */}
         <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">📚 カテゴリーを選択</h2>
           <div className="max-h-[400px] lg:max-h-[500px] overflow-y-auto space-y-3 md:space-y-4">
@@ -117,7 +144,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ✅ クリア！ランキング (スクロール可能) */}
+        {/* ✅ ランキング表示 */}
         <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">🏆 クリア！ ランキング</h2>
           <div className="max-h-[300px] lg:max-h-[400px] overflow-y-auto">
@@ -150,11 +177,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ✅ ログアウトボタン (ランキングの下) */}
-        <button
-          onClick={handleLogout}
-          className="w-full max-w-sm sm:max-w-md md:max-w-xl lg:max-w-2xl bg-red-500 hover:bg-red-600 text-white p-4 md:p-5 rounded-lg font-bold text-lg md:text-xl transition mt-6"
-        >
+        {/* ✅ ログアウトボタン */}
+        <button onClick={handleLogout} className="bg-red-500 text-white p-4 rounded-lg font-bold">
           ログアウト
         </button>
       </div>

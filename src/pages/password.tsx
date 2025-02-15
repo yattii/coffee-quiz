@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
+import { getUser, updateLastLogin } from "../lib/firestore"; // ✅ Firestore を使用
 
 const FIXED_PASSWORD = "1"; // 固定パスワード
 
@@ -10,53 +11,39 @@ export default function PasswordPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // ✅ **登録済みユーザーを取得**
-  const getRegisteredUsers = (): { userId: string; nickname: string }[] => {
-    try {
-      const users = localStorage.getItem("registeredUsers");
-      if (!users) return [];
-
-      const parsedUsers = JSON.parse(users);
-      return Array.isArray(parsedUsers) ? parsedUsers : [];
-    } catch (error) {
-      console.error("❌ `registeredUsers` の解析に失敗:", error);
-      return [];
-    }
-  };
-
   // ✅ **ログイン処理**
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!/^\d+$/.test(userId)) {
       setError("ユーザーIDは数字のみで入力してください。");
       return;
     }
 
-    const users = getRegisteredUsers();
-    if (users.length === 0) {
-      setError("登録されたユーザーがいません。");
-      return;
+    try {
+      const user = await getUser(userId); // ✅ Firestore からユーザー取得
+      if (!user) {
+        setError("このユーザーIDは登録されていません。");
+        return;
+      }
+
+      if (password !== FIXED_PASSWORD) {
+        setError("パスワードが間違っています。");
+        return;
+      }
+
+      // ✅ **ログイン履歴を Firestore に保存**
+      await updateLastLogin(userId);
+
+      // ✅ **ログイン情報を保存**
+      sessionStorage.setItem("authenticated", "true");
+      sessionStorage.setItem("userId", user.userId);
+      sessionStorage.setItem("nickname", user.nickname);
+
+      console.log("📌 ログイン成功:", user);
+      router.push("/");
+    } catch (error) {
+      console.error("❌ ログインエラー:", error);
+      setError("ログイン処理中にエラーが発生しました。");
     }
-
-    const user = users.find((user) => user?.userId === userId);
-    if (!user) {
-      setError("このユーザーIDは登録されていません。");
-      return;
-    }
-
-    if (password !== FIXED_PASSWORD) {
-      setError("パスワードが間違っています。");
-      return;
-    }
-
-    // ✅ **ログイン情報を保存**
-    const now = new Date().toLocaleString();
-    localStorage.setItem(`lastLogin_${userId}`, now);
-    sessionStorage.setItem("authenticated", "true");
-    sessionStorage.setItem("userId", user.userId);
-    sessionStorage.setItem("nickname", user.nickname);
-
-    console.log("📌 ログイン成功:", user);
-    router.push("/");
   };
 
   return (
@@ -107,6 +94,7 @@ export default function PasswordPage() {
     </Layout>
   );
 }
+
 
 
 

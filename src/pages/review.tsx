@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { fetchReviewQuestions } from "@/lib/firestore"; // 🔥 Firestore の関数をインポート
 
 // **復習用問題データの型**
 interface ReviewQuestion {
@@ -18,33 +19,38 @@ export default function ReviewPage() {
   const [countdown, setCountdown] = useState(START_COUNTDOWN);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showStartText, setShowStartText] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedReviewQuestions = sessionStorage.getItem("reviewQuestions");
-
-      if (storedReviewQuestions) {
-        try {
-          const parsedQuestions = JSON.parse(storedReviewQuestions) as ReviewQuestion[];
-
-          if (parsedQuestions.length === 0) {
-            console.warn("⚠️ 復習データが空です。");
-            router.push("/result");
-          } else {
-            console.log("✅ 復習データを読み込み:", parsedQuestions);
-            setReviewQuestions(parsedQuestions);
-          }
-        } catch (error) {
-          console.error("❌ 復習データの解析に失敗しました:", error);
-          router.push("/result");
-        }
+      const storedUserId = sessionStorage.getItem("userId");
+      if (storedUserId) {
+        setUserId(storedUserId);
+        loadReviewQuestions(storedUserId);
       } else {
-        console.warn("⚠️ 復習データが見つかりません。");
+        console.warn("⚠️ ユーザーIDが見つかりません。");
         router.push("/result");
       }
     }
   }, [router]);
+
+  // ✅ **Firestore から間違えた問題を取得**
+  const loadReviewQuestions = async (userId: string) => {
+    try {
+      const questions = await fetchReviewQuestions(userId);
+      if (questions.length === 0) {
+        console.warn("⚠️ Firestore からの復習データが空です。");
+        router.push("/result");
+      } else {
+        console.log("✅ 復習データを読み込み:", questions);
+        setReviewQuestions(questions);
+      }
+    } catch (error) {
+      console.error("❌ Firestore からの復習データ取得に失敗:", error);
+      router.push("/result");
+    }
+  };
 
   // ✅ **復習開始前のカウントダウン処理**
   useEffect(() => {
@@ -92,7 +98,6 @@ export default function ReviewPage() {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
       console.log("✅ 復習問題がすべて完了しました。");
-      sessionStorage.removeItem("reviewQuestions");
       router.push("/result");
     }
   };
@@ -139,7 +144,7 @@ export default function ReviewPage() {
       {/* タイマーエリア */}
       <div className="w-full max-w-4xl flex justify-center mb-6">
         <div className="text-3xl md:text-4xl font-bold bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg">
-           {countdown} 秒
+          {countdown} 秒
         </div>
       </div>
 

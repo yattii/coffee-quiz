@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
+import { saveCategoryAccuracy, saveReviewQuestions } from "@/lib/firestore"; // 🔥 Firestore 対応
 
 interface QuizResult {
   question: string;
   correctAnswer: string;
   selectedAnswer: string;
-  choices: string[]; // **選択肢を保持**
+  choices: string[];
   category: string;
 }
 
@@ -19,70 +20,65 @@ export default function ResultPage() {
   const [category, setCategory] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("🔄 [データ取得] クイズ結果を取得中...");
     if (typeof window !== "undefined") {
-      const results = sessionStorage.getItem("quizResults");
-      const score = sessionStorage.getItem("finalScore");
-      const storedCategory = sessionStorage.getItem("quizCategory");
-      const storedUserId = sessionStorage.getItem("userId");
+      try {
+        const results = sessionStorage.getItem("quizResults");
+        const storedCategory = sessionStorage.getItem("quizCategory");
+        const storedUserId = sessionStorage.getItem("userId");
 
-      if (results) {
-        try {
+        if (results) {
           const parsedResults = JSON.parse(results) as QuizResult[];
           setQuizResults(parsedResults);
+          console.log("✅ [取得成功] クイズ結果:", parsedResults);
 
-          // **復習用データを保存**
-          const incorrectQuestions = parsedResults
-            .filter((q) => q.correctAnswer !== q.selectedAnswer)
-            .map((q) => ({
-              ...q,
-              choices: q.choices,
-            }));
+          // **正答数を正しく計算**
+          const correctCount = parsedResults.filter(q => q.correctAnswer === q.selectedAnswer).length;
+          setFinalScore(correctCount);
 
+          // **間違えた問題を Firestore に保存**
+          const incorrectQuestions = parsedResults.filter((q) => q.correctAnswer !== q.selectedAnswer);
           if (incorrectQuestions.length > 0) {
-            sessionStorage.setItem("reviewQuestions", JSON.stringify(incorrectQuestions));
             setHasReviewQuestions(true);
+            if (storedUserId) {
+              console.log("🔥 [Firestore] 間違えた問題を保存:", incorrectQuestions);
+              saveReviewQuestions(storedUserId, incorrectQuestions);
+            }
           } else {
-            sessionStorage.removeItem("reviewQuestions");
             setHasReviewQuestions(false);
           }
-        } catch (error) {
-          console.error("クイズ結果の解析に失敗しました:", error);
         }
-      }
 
-      if (score) {
-        try {
-          setFinalScore(JSON.parse(score) as number);
-        } catch (error) {
-          console.error("スコアの解析に失敗しました:", error);
+        if (storedCategory) {
+          setCategory(storedCategory);
+          console.log("✅ [取得成功] クイズカテゴリー:", storedCategory);
         }
-      }
 
-      if (storedCategory) setCategory(storedCategory);
-      if (storedUserId) setUserId(storedUserId);
+        if (storedUserId) {
+          setUserId(storedUserId);
+          console.log("✅ [取得成功] ユーザーID:", storedUserId);
+        }
+      } catch (error) {
+        console.error("❌ [エラー] クイズ結果の取得に失敗:", error);
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (userId && category) {
-      updateAccuracy(userId, category, finalScore, quizResults.length);
+    if (userId && category && quizResults.length > 0) {
+      console.log("🔥 [Firestore] 正答率を保存:", {
+        userId,
+        category,
+        correctAnswers: finalScore,
+        totalAttempts: quizResults.length,
+      });
+
+      // **正答率の計算を最新の値で行う**
+      saveCategoryAccuracy(userId, category, finalScore, quizResults.length)
+        .then(() => console.log("✅ [保存成功] Firestore の正答率を更新しました"))
+        .catch((err) => console.error("❌ [エラー] Firestore の正答率更新に失敗:", err));
     }
-  }, [userId, category, finalScore, quizResults.length]);
-
-  // ✅ **正答率を更新**
-  const updateAccuracy = (userId: string, category: string, correct: number, total: number) => {
-    if (typeof window === "undefined") return;
-    const key = `accuracy_${userId}`;
-    const storedData = JSON.parse(localStorage.getItem(key) || "{}");
-
-    storedData[category] = {
-      totalAttempts: total,
-      correctAnswers: correct,
-    };
-
-    localStorage.setItem(key, JSON.stringify(storedData));
-    window.dispatchEvent(new Event("storage"));
-  };
+  }, [userId, category, quizResults]); // ✅ `finalScore` ではなく `quizResults` を依存リストにする
 
   return (
     <Layout>

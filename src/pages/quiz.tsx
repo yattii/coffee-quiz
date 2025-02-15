@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { fetchQuizzes } from "../lib/api";
+import { saveQuizResult, saveReviewQuestions } from "../lib/firestore"; // Firestore 連携
 
 const shuffleArray = <T,>(array: T[]): T[] => {
   return [...array].sort(() => Math.random() - 0.5);
@@ -17,6 +18,13 @@ interface Quiz {
   category: string;
 }
 
+interface QuizResult {
+  question: string;
+  correctAnswer: string;
+  selectedAnswer: string;
+  choices: string[];
+}
+
 interface QuizProps {
   quizzes: Quiz[];
 }
@@ -25,7 +33,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   const [shuffledQuizzes, setShuffledQuizzes] = useState<Quiz[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<{ question: string; correctAnswer: string; selectedAnswer: string }[]>([]);
+  const [userAnswers, setUserAnswers] = useState<QuizResult[]>([]);
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [timeLeft, setTimeLeft] = useState(12);
   const [countdown, setCountdown] = useState(3);
@@ -33,11 +41,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   const [showStartText, setShowStartText] = useState(false);
   const router = useRouter();
   const category = router.query.category as string;
-
-  // ✅ クイズデータをデバッグ
-  useEffect(() => {
-    console.log("取得したクイズデータ:", quizzes);
-  }, [quizzes]);
+  const userId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
 
   useEffect(() => {
     if (!quizzes || quizzes.length === 0) {
@@ -57,32 +61,52 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
     setTimeLeft(12);
   }, [currentQuestionIndex, quizStarted]);
 
-  const handleTimeout = useCallback(() => {
+  // ✅ クイズ終了時のデータ保存関数
+  const handleQuizEnd = async (updatedAnswers: QuizResult[]) => {
+    if (userId) {
+      console.log("🔥 [Firestore] クイズ結果を保存:", updatedAnswers);
+      await saveQuizResult(userId, category, updatedAnswers);
+      const incorrectAnswers = updatedAnswers.filter(a => a.selectedAnswer !== a.correctAnswer);
+      console.log("🔥 [Firestore] 間違えた問題を保存:", incorrectAnswers);
+      await saveReviewQuestions(userId, incorrectAnswers);
+    }
+    
+    sessionStorage.setItem("quizResults", JSON.stringify(updatedAnswers));
+    sessionStorage.setItem("finalScore", JSON.stringify(score));
+    sessionStorage.setItem("quizCategory", category);
+    
+    console.log("🏁 [完了] クイズ終了 - 結果画面へ");
+    router.push("/result");
+  };
+
+  const handleTimeout = useCallback(async () => {
     if (feedback) return;
 
     const question = shuffledQuizzes[currentQuestionIndex];
     if (!question) return;
 
-    const updatedAnswers = [
+    const updatedAnswers: QuizResult[] = [
       ...userAnswers,
-      { question: question.question, correctAnswer: question.answer, selectedAnswer: "時間切れ" },
+      { 
+        question: question.question, 
+        choices: question.choices, 
+        correctAnswer: question.answer, 
+        selectedAnswer: "時間切れ" 
+      },
     ];
     setUserAnswers(updatedAnswers);
 
     setFeedback("incorrect");
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setFeedback(null);
       if (currentQuestionIndex + 1 >= shuffledQuizzes.length) {
-        sessionStorage.setItem("quizResults", JSON.stringify(updatedAnswers));
-        sessionStorage.setItem("finalScore", JSON.stringify(score));
-        sessionStorage.setItem("quizCategory", category);
-        router.push("/result");
+        await handleQuizEnd(updatedAnswers);
       } else {
         setCurrentQuestionIndex((prev) => prev + 1);
       }
     }, 1000);
-  }, [currentQuestionIndex, shuffledQuizzes, feedback, score, category, router, userAnswers]);
+  }, [currentQuestionIndex, shuffledQuizzes, feedback, userAnswers, userId, category, router]);
 
   useEffect(() => {
     if (!quizStarted) return;
@@ -138,13 +162,18 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   const question = shuffledQuizzes[currentQuestionIndex];
   if (!question) return null;
 
-  const handleAnswer = (choice: string) => {
+  const handleAnswer = async (choice: string) => {
     if (feedback) return;
     const isCorrect = choice === question.answer;
 
-    const updatedAnswers = [
+    const updatedAnswers: QuizResult[] = [
       ...userAnswers,
-      { question: question.question, correctAnswer: question.answer, selectedAnswer: choice },
+      { 
+        question: question.question, 
+        choices: question.choices, 
+        correctAnswer: question.answer, 
+        selectedAnswer: choice 
+      },
     ];
     setUserAnswers(updatedAnswers);
 
@@ -154,13 +183,10 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
 
     setFeedback(isCorrect ? "correct" : "incorrect");
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setFeedback(null);
       if (currentQuestionIndex + 1 >= shuffledQuizzes.length) {
-        sessionStorage.setItem("quizResults", JSON.stringify(updatedAnswers));
-        sessionStorage.setItem("finalScore", JSON.stringify(score + (isCorrect ? 1 : 0)));
-        sessionStorage.setItem("quizCategory", category);
-        router.push("/result");
+        await handleQuizEnd(updatedAnswers);
       } else {
         setCurrentQuestionIndex((prev) => prev + 1);
       }
@@ -184,7 +210,6 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
           </div>
         )}
 
-        {/* 選択肢 */}
         <div className="mt-8 md:mt-10 space-y-8 flex flex-col items-center w-full">
           {question.choices.map((choice, index) => (
             <button
@@ -205,13 +230,11 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
             </span>
           </div>
         )}
-        
+
       </div>
     </div>
   );
 };
-
-
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const category = context.query.category as string;
@@ -228,5 +251,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     props: { quizzes: quizzes || [] },
   };
 };
+
 
 export default QuizPage;
