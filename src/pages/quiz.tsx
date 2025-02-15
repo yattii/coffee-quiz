@@ -1,5 +1,5 @@
 import { GetServerSideProps } from "next";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef  } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { fetchQuizzes } from "../lib/api";
@@ -43,6 +43,9 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   const category = router.query.category as string;
   const userId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
 
+  const isTimeoutTriggered = useRef(false); // ✅ タイムアウトが連続発火しないように制御
+
+
   useEffect(() => {
     if (!quizzes || quizzes.length === 0) {
       console.warn("⚠ クイズデータが空です。");
@@ -80,7 +83,8 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
   };
 
   const handleTimeout = useCallback(async () => {
-    if (feedback) return;
+    if (feedback || isTimeoutTriggered.current) return;
+    isTimeoutTriggered.current = true; // ✅ タイムアウトの連続発火防止
 
     const question = shuffledQuizzes[currentQuestionIndex];
     if (!question) return;
@@ -100,10 +104,12 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
 
     setTimeout(async () => {
       setFeedback(null);
+      isTimeoutTriggered.current = false; // ✅ 次の問題でタイマーが正常に動作するようリセット
       if (currentQuestionIndex + 1 >= shuffledQuizzes.length) {
         await handleQuizEnd(updatedAnswers);
       } else {
         setCurrentQuestionIndex((prev) => prev + 1);
+        setTimeLeft(12); // ✅ 次の問題でタイマーをリセット
       }
     }, 1000);
   }, [currentQuestionIndex, shuffledQuizzes, feedback, userAnswers, userId, category, router]);

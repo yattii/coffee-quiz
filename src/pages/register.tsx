@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
-import { saveUser, getUser } from "../lib/firestore"; // ✅ Firestore 連携
+import { saveUser, getUser, isNicknameTaken } from "../lib/firestore"; // ✅ Firestore 連携
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,9 +21,17 @@ export default function RegisterPage() {
     }
 
     try {
+      // **ユーザーIDの重複チェック**
       const existingUser = await getUser(userId);
       if (existingUser) {
         setError("このユーザーIDはすでに登録されています。");
+        return;
+      }
+
+      // **ニックネームの重複チェック**
+      const nicknameExists = await isNicknameTaken(nickname);
+      if (nicknameExists) {
+        setError("このニックネームはすでに使用されています。別の名前を入力してください。");
         return;
       }
 

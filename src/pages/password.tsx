@@ -48,7 +48,14 @@ export default function PasswordPage() {
 
   return (
     <Layout>
-      <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-8">
+
+        {/* ✅ タイトルカード */}
+        <div className="bg-blue-100 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
+          <h1 className="text-2xl md:text-4xl font-bold text-blue-800">イン前３分！コーヒークイズ！</h1>
+          <p className="text-base md:text-xl text-gray-700 mt-2">楽しく学んでブラックエプロンを取ろう！</p>
+        </div>
+
         <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-xl lg:max-w-2xl w-full">
           <h1 className="text-3xl font-bold text-center mb-6">ログイン</h1>
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
@@ -94,48 +101,3 @@ export default function PasswordPage() {
     </Layout>
   );
 }
-
-
-
-
-// WEBページで検証してコンソールに入力
-
-// ユーザーID・ニックネームの確認
-
-// console.log(JSON.parse(localStorage.getItem("registeredUsers")));
-
-
-// ユーザーの削除
-
-
-// // **全ユーザーを削除**
-
-// localStorage.removeItem("registeredUsers"); // ユーザー一覧を削除
-
-// // **正答率やログイン履歴を削除**
-// Object.keys(localStorage).forEach((key) => {
-//   if (key.startsWith("accuracy_") || key.startsWith("lastLogin_")) {
-//     localStorage.removeItem(key);
-//   }
-// });
-
-// console.log("全ユーザーとその関連データを削除しました。");
-
-
-
-
-// 特定のユーザーを削除
-
-
-// const userIdToDelete = "1"; // 削除したいユーザーのID
-// let users = JSON.parse(localStorage.getItem("registeredUsers") || "[]");
-
-// // ユーザーを削除
-// users = users.filter(user => user.userId !== userIdToDelete);
-// localStorage.setItem("registeredUsers", JSON.stringify(users));
-
-// // **ユーザーの関連データを削除**
-// localStorage.removeItem(`accuracy_${userIdToDelete}`);  // 正答率データを削除
-// localStorage.removeItem(`lastLogin_${userIdToDelete}`); // 最終ログイン日時を削除
-
-// console.log(`ユーザーID ${userIdToDelete} を削除し、関連データもリセットしました。`);

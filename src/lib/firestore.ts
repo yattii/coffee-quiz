@@ -1,5 +1,5 @@
 import { db } from "../lib/firebase";
-import { doc, setDoc, getDoc, collection, getDocs,} from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
 
 interface User {
   userId: string;
@@ -165,3 +165,18 @@ export async function fetchReviewQuestions(userId: string): Promise<QuizResult[]
     return [];
   }
 }
+
+
+// ✅ **ニックネームの重複チェック関数**
+export const isNicknameTaken = async (nickname: string): Promise<boolean> => {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("nickname", "==", nickname));
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty; // 🔍 もし同じニックネームがあれば true を返す
+  } catch (error) {
+    console.error("❌ ニックネームのチェックに失敗:", error);
+    return false;
+  }
+};
+
