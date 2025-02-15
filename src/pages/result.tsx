@@ -78,7 +78,7 @@ export default function ResultPage() {
         .then(() => console.log("✅ [保存成功] Firestore の正答率を更新しました"))
         .catch((err) => console.error("❌ [エラー] Firestore の正答率更新に失敗:", err));
     }
-  }, [userId, category, quizResults]); // ✅ `finalScore` ではなく `quizResults` を依存リストにする
+  }, [userId, category, finalScore, quizResults]); // ✅ `finalScore` ではなく `quizResults` を依存リストにする
 
   return (
     <Layout>

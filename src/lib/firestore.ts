@@ -1,5 +1,5 @@
 import { db } from "../lib/firebase";
-import { doc, setDoc, getDoc, collection, getDocs, writeBatch } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs,} from "firebase/firestore";
 
 interface User {
   userId: string;
@@ -78,7 +78,7 @@ export async function saveCategoryAccuracy(userId: string, category: string, cor
     const userRef = doc(db, "user_accuracy", userId);
     const userDoc = await getDoc(userRef);
 
-    let accuracyData: AccuracyData = userDoc.exists() ? (userDoc.data() as AccuracyData) : {};
+    const accuracyData: AccuracyData = userDoc.exists() ? (userDoc.data() as AccuracyData) : {};
     accuracyData[category] = { totalAttempts: total, correctAnswers: correct };
 
     await setDoc(userRef, accuracyData, { merge: true });

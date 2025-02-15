@@ -22,19 +22,6 @@ export default function ReviewPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedUserId = sessionStorage.getItem("userId");
-      if (storedUserId) {
-        setUserId(storedUserId);
-        loadReviewQuestions(storedUserId);
-      } else {
-        console.warn("⚠️ ユーザーIDが見つかりません。");
-        router.push("/result");
-      }
-    }
-  }, [router]);
-
   // ✅ **Firestore から間違えた問題を取得**
   const loadReviewQuestions = async (userId: string) => {
     try {
@@ -51,6 +38,22 @@ export default function ReviewPage() {
       router.push("/result");
     }
   };
+
+  useEffect(() => {
+    const storedUserId = sessionStorage.getItem("userId");
+    if (storedUserId) {
+      setUserId(storedUserId);
+    } else {
+      console.warn("⚠️ ユーザーIDが見つかりません。");
+      router.push("/result");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (userId) {
+      loadReviewQuestions(userId);
+    }
+  }, [userId, router]);
 
   // ✅ **復習開始前のカウントダウン処理**
   useEffect(() => {
