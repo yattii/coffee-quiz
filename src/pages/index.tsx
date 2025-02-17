@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback, useTransition } from "react";
-import { fetchCategories } from "../lib/api"; // ✅ microCMS
-import { fetchCategoryAccuracy, fetchRankings, getUser } from "../lib/firestore"; // ✅ Firestore を利用
+import { fetchCategories } from "../lib/api"; // ✅ microCMSからカテゴリーを取得
+import { fetchCategoryAccuracy, fetchRankings, getUser } from "../lib/firestore"; // ✅ Firestoreを利用
 import Layout from "@/components/Layout";
 
 interface Ranking {
@@ -17,7 +17,7 @@ export default function Home() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isTransitioning, startTransition] = useTransition(); // ✅ 遷移の最適化
+  const [isTransitioning, startTransition] = useTransition();
 
   useEffect(() => {
     console.log("🔍 [Home] ページマウント時にデータ取得開始");
@@ -25,7 +25,7 @@ export default function Home() {
     const auth = sessionStorage.getItem("authenticated");
     if (!auth) {
       console.warn("⚠ [認証エラー] ログインしていないためリダイレクト");
-      router.replace("/password");
+      router.push("/password");
       return;
     }
     setIsAuthenticated(true);
@@ -37,24 +37,25 @@ export default function Home() {
     }
     console.log(`🔍 [ユーザーID] ${storedUserId}`);
 
+    // 🔥 **データ取得処理を並行処理**
     const fetchData = async () => {
       try {
         console.log("🔄 [データ取得] Firestore & microCMS からデータ取得開始");
 
         const [user, microCMSCategories, accuracyData, rankingData] = await Promise.all([
-          getUser(storedUserId).catch((err) => {
+          getUser(storedUserId).catch((err: unknown) => {
             console.error("❌ [getUser] ユーザー情報の取得に失敗:", err);
             return null;
           }),
-          fetchCategories().catch((err) => {
-            console.error("❌ [fetchCategories] microCMS のカテゴリー取得に失敗:", err);
+          fetchCategories().catch((err: unknown) => {
+            console.error("❌ [fetchMicroCMSCategories] microCMS のカテゴリー取得に失敗:", err);
             return [];
           }),
-          fetchCategoryAccuracy(storedUserId).catch((err) => {
+          fetchCategoryAccuracy(storedUserId).catch((err: unknown) => {
             console.error("❌ [fetchCategoryAccuracy] 正答率データの取得に失敗:", err);
             return {};
           }),
-          fetchRankings().catch((err) => {
+          fetchRankings().catch((err: unknown) => {
             console.error("❌ [fetchRankings] ランキングデータの取得に失敗:", err);
             return [];
           }),
@@ -72,7 +73,7 @@ export default function Home() {
         setCategoryAccuracy(accuracyData || {});
         setRankings(rankingData || {});
 
-        // 🔥 **事前にクイズページをプリフェッチ**
+        // 🔥 **プリフェッチ (事前にクイズページを読み込む)**
         microCMSCategories.forEach((category) => {
           router.prefetch(`/quiz?category=${category}`);
         });
@@ -88,8 +89,15 @@ export default function Home() {
     fetchData();
   }, [router]);
 
-  // ✅ **カテゴリー選択時の処理**
-  const handleCategorySelect = useCallback((category: string) => {
+  const handleLogout = () => {
+    console.log("🚪 [ログアウト] ユーザーがログアウトしました");
+    sessionStorage.removeItem("authenticated");
+    sessionStorage.removeItem("userId");
+    router.push("/password");
+  };
+
+   // ✅ **カテゴリー選択時の処理**
+   const handleCategorySelect = useCallback((category: string) => {
     console.log(`📚 [カテゴリー選択] ${category}`);
 
     startTransition(() => {
@@ -104,13 +112,39 @@ export default function Home() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500"></div>
-          <p className="mt-4 text-2xl font-bold">データを読み込んでいます...</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-orange-200 to-orange-300 bg-opacity-90 transition-opacity duration-700 animate-fade">
+          {/* ✅ スタイリッシュなローディングアイコン */}
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <div className="absolute w-full h-full border-4 border-white border-t-transparent rounded-full animate-spin-slow"></div>
+          </div>
+  
+          {/* ✅ ゆっくり点滅するテキスト */}
+          <p className="mt-4 text-2xl font-bold text-white animate-pulse">
+            データを読み込んでいます...
+          </p>
         </div>
+  
+        {/* ✅ Tailwind CSS のカスタムアニメーション */}
+        <style jsx global>{`
+          @keyframes fade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-fade {
+            animation: fade 1s ease-in-out;
+          }
+          @keyframes spin-slow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .animate-spin-slow {
+            animation: spin-slow 2s linear infinite;
+          }
+        `}</style>
       </Layout>
     );
   }
+  
 
   return (
     <Layout>
@@ -118,40 +152,76 @@ export default function Home() {
 
         {/* ✅ ようこそ！ ユーザーカード */}
         {nickname && (
-          <div className="bg-blue-100 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-3xl w-full text-center">
+          <div className="bg-blue-100 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
             <h2 className="text-xl md:text-2xl font-bold text-blue-800">ようこそ！{nickname} さん 🎉</h2>
           </div>
         )}
 
         {/* ✅ カテゴリー選択 */}
-        <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-3xl w-full text-center">
+        <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">📚 カテゴリーを選択</h2>
-          <div className="max-h-[400px] overflow-y-auto space-y-3">
+          <div className="max-h-[400px] lg:max-h-[500px] overflow-y-auto space-y-3 md:space-y-4">
             {categories.length === 0 ? (
               <p>カテゴリーがありません。</p>
             ) : (
-              categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => handleCategorySelect(category)}
-                  disabled={isTransitioning} // ✅ 遷移中はクリック不可
-                  className={`block w-full p-4 border rounded-lg ${
-                    isTransitioning ? "bg-gray-300 cursor-not-allowed" : "bg-gray-100 hover:bg-gray-200"
-                  } transition text-lg`}
-                >
-                  {category}
-                </button>
-              ))
+              categories.map((category) => {
+                const accuracy = categoryAccuracy[category] || { totalAttempts: 10, correctAnswers: 0 };
+                const isCleared = accuracy.correctAnswers === accuracy.totalAttempts && accuracy.totalAttempts > 0;
+
+                return (
+                  <button
+                    key={category}
+                    onClick={() => handleCategorySelect(category)}
+                    disabled={isTransitioning}
+                    className="block w-full p-4 md:p-5 border rounded-lg bg-gray-100 hover:bg-gray-200 transition text-lg md:text-xl"
+                  >
+                    {category} ({accuracy.correctAnswers}/{accuracy.totalAttempts}) {isCleared && "🎉クリア！"}
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* ✅ ローディングスピナー */}
-        {isTransitioning && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-white"></div>
+        
+
+        {/* ✅ ランキング表示 */}
+        <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">🏆 クリア！ ランキング</h2>
+          <div className="max-h-[300px] lg:max-h-[400px] overflow-y-auto">
+            <table className="w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-200">
+                  <th className="border border-gray-300 p-3 md:p-4 text-sm md:text-lg">順位</th>
+                  <th className="border border-gray-300 p-3 md:p-4 text-sm md:text-lg">ユーザー</th>
+                  <th className="border border-gray-300 p-3 md:p-4 text-sm md:text-lg">クリア！数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankings.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="border border-gray-300 p-3 md:p-4 text-center">
+                      まだクリアしたユーザーはいません。
+                    </td>
+                  </tr>
+                ) : (
+                  rankings.map((user, index) => (
+                    <tr key={index} className="text-center">
+                      <td className="border border-gray-300 p-3 md:p-4">{index + 1}</td>
+                      <td className="border border-gray-300 p-3 md:p-4">{user.nickname}</td>
+                      <td className="border border-gray-300 p-3 md:p-4">{user.clearCount}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
+
+        {/* ✅ ログアウトボタン */}
+        <button onClick={handleLogout} className="bg-red-500 text-white p-4 rounded-lg font-bold">
+          ログアウト
+        </button>
       </div>
     </Layout>
   );

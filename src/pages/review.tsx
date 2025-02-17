@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { fetchReviewQuestions } from "@/lib/firestore"; // 🔥 Firestore の関数をインポート
 
@@ -22,32 +22,37 @@ export default function ReviewPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
 
-  // ✅ **Firestore から間違えた問題を取得**
-  const loadReviewQuestions = async (userId: string) => {
-    try {
-      const questions = await fetchReviewQuestions(userId);
-      if (questions.length === 0) {
-        console.warn("⚠️ Firestore からの復習データが空です。");
-        router.push("/result");
-      } else {
-        console.log("✅ 復習データを読み込み:", questions);
-        setReviewQuestions(questions);
-      }
-    } catch (error) {
-      console.error("❌ Firestore からの復習データ取得に失敗:", error);
+  // ✅ Firestore から間違えた問題を取得（useCallback を使用）
+const loadReviewQuestions = useCallback(async (userId: string) => {
+  try {
+    const questions = await fetchReviewQuestions(userId);
+    if (questions.length === 0) {
+      console.warn("⚠️ Firestore からの復習データが空です。");
       router.push("/result");
+    } else {
+      console.log("✅ 復習データを読み込み:", questions);
+      setReviewQuestions(questions);
     }
-  };
+  } catch (error) {
+    console.error("❌ Firestore からの復習データ取得に失敗:", error);
+    router.push("/result");
+  }
+}, [router]);
 
-  useEffect(() => {
+// ✅ useEffect で loadReviewQuestions を依存配列に追加
+useEffect(() => {
+  if (typeof window !== "undefined") {
     const storedUserId = sessionStorage.getItem("userId");
     if (storedUserId) {
       setUserId(storedUserId);
+      loadReviewQuestions(storedUserId);
     } else {
       console.warn("⚠️ ユーザーIDが見つかりません。");
       router.push("/result");
     }
-  }, [router]);
+  }
+}, [router, loadReviewQuestions]); // ✅ loadReviewQuestions を依存配列に追加
+
 
   useEffect(() => {
     if (userId) {

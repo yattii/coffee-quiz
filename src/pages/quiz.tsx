@@ -112,7 +112,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
         setTimeLeft(12); // ✅ 次の問題でタイマーをリセット
       }
     }, 1000);
-  }, [currentQuestionIndex, shuffledQuizzes, feedback, userAnswers, userId, category, router]);
+  }, [currentQuestionIndex, shuffledQuizzes, feedback, userAnswers, userId, category, router,  handleQuizEnd]);
 
   useEffect(() => {
     if (!quizStarted) return;
