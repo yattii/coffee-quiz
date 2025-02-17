@@ -70,13 +70,14 @@ export default function Home() {
 
         if (user) setNickname(user.nickname);
         setCategories(microCMSCategories || []);
-        setCategoryAccuracy(accuracyData || {});
-        setRankings(rankingData || {});
-
         // 🔥 **プリフェッチ (事前にクイズページを読み込む)**
         microCMSCategories.forEach((category) => {
           router.prefetch(`/quiz?category=${category}`);
         });
+        setCategoryAccuracy(accuracyData || {});
+        setRankings(rankingData || {});
+
+        
 
       } catch (error) {
         console.error("❌ [データ取得エラー] fetchData 処理中にエラーが発生:", error);
@@ -109,22 +110,16 @@ export default function Home() {
     return null;
   }
 
+  // ✅ **ローディング画面 (フェードイン)**
   if (loading) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-orange-200 to-orange-300 bg-opacity-90 transition-opacity duration-700 animate-fade">
-          {/* ✅ スタイリッシュなローディングアイコン */}
           <div className="relative w-20 h-20 flex items-center justify-center">
             <div className="absolute w-full h-full border-4 border-white border-t-transparent rounded-full animate-spin-slow"></div>
           </div>
-  
-          {/* ✅ ゆっくり点滅するテキスト */}
-          <p className="mt-4 text-2xl font-bold text-white animate-pulse">
-            データを読み込んでいます...
-          </p>
+          <p className="mt-4 text-2xl font-bold text-white animate-pulse">データを読み込んでいます...</p>
         </div>
-  
-        {/* ✅ Tailwind CSS のカスタムアニメーション */}
         <style jsx global>{`
           @keyframes fade {
             from { opacity: 0; }
@@ -148,6 +143,19 @@ export default function Home() {
 
   return (
     <Layout>
+      {/* ✅ 遷移時のローディング画面 */}
+      {isTransitioning && (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 text-white transition-opacity duration-500">
+          <p className="text-3xl font-bold animate-pulse">🚀 クイズを準備中...</p>
+          {/* ✅ ローディングバー */}
+          <div className="w-48 h-1 bg-white mt-4 relative">
+            <div className="absolute left-0 h-full bg-yellow-400 animate-loadingBar"></div>
+          </div>
+        </div>
+      )}
+
+
+
       <div className="flex flex-col items-center justify-center min-h-screen py-12 space-y-12">
 
         {/* ✅ ようこそ！ ユーザーカード */}
@@ -223,6 +231,15 @@ export default function Home() {
           ログアウト
         </button>
       </div>
+      <style jsx global>{`
+        @keyframes loadingBar {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        .animate-loadingBar {
+          animation: loadingBar 1.5s ease-in-out infinite;
+        }
+      `}</style>
     </Layout>
   );
 }
