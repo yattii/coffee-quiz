@@ -70,7 +70,13 @@ export default function Home() {
         if (user) setNickname(user.nickname);
         setCategories(microCMSCategories || []);
         setCategoryAccuracy(accuracyData || {});
-        setRankings(rankingData || []);
+        setRankings(rankingData || {});
+
+        // 🔥 **プリフェッチ (事前にクイズページを読み込む)**
+        microCMSCategories.forEach((category) => {
+          router.prefetch(`/quiz?category=${category}`);
+        });
+
       } catch (error) {
         console.error("❌ [データ取得エラー] fetchData 処理中にエラーが発生:", error);
       } finally {

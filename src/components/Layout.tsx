@@ -45,7 +45,7 @@ export default function Layout({ children }: LayoutProps) {
             className="absolute animate-fall"
             style={{
               left: `${item.left}%`,
-              top: `-5%`,
+              top: `-10%`,
               animationDelay: `${item.delay}s`,
             }}
           >

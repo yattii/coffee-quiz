@@ -51,8 +51,8 @@ export default function PasswordPage() {
       <div className="flex flex-col items-center justify-center min-h-screen space-y-8">
 
         {/* ✅ タイトルカード */}
-        <div className="bg-blue-100 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
-          <h1 className="text-2xl md:text-4xl font-bold text-blue-800">イン前３分！コーヒークイズ！</h1>
+        <div className="bg-orange-200 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
+          <h1 className="text-2xl md:text-4xl font-bold text-orange-800"><p>イン前３分！</p>コーヒークイズ</h1>
           <p className="text-base md:text-xl text-gray-700 mt-2">楽しく学んでブラックエプロンを取ろう！</p>
         </div>
 
@@ -94,7 +94,7 @@ export default function PasswordPage() {
             onClick={() => router.push("/register")}
             className="w-full bg-gray-500 hover:bg-gray-600 text-white p-4 mt-4 rounded-lg font-bold text-lg transition"
           >
-            新規登録
+            新規登録ページへ
           </button>
         </div>
       </div>
