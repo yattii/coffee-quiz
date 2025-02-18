@@ -143,6 +143,11 @@ export default function Home() {
 
   return (
     <Layout>
+      <div className="mx-8">
+
+      
+
+
       {/* ✅ 遷移時のローディング画面 */}
       {isTransitioning && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 text-white transition-opacity duration-500">
@@ -160,14 +165,14 @@ export default function Home() {
 
         {/* ✅ ようこそ！ ユーザーカード */}
         {nickname && (
-          <div className="bg-blue-100 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
-            <h2 className="text-xl md:text-2xl font-bold text-blue-800">ようこそ！{nickname} さん 🎉</h2>
+          <div className="bg-orange-100 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
+            <h2 className="text-xl md:text-2xl font-bold text-orange-800">ようこそ！{nickname} さん 🎉</h2>
           </div>
         )}
 
         {/* ✅ カテゴリー選択 */}
         <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">📚 カテゴリーを選択</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4"> カテゴリーを選択</h2>
           <div className="max-h-[400px] lg:max-h-[500px] overflow-y-auto space-y-3 md:space-y-4">
             {categories.length === 0 ? (
               <p>カテゴリーがありません。</p>
@@ -239,7 +244,7 @@ export default function Home() {
         .animate-loadingBar {
           animation: loadingBar 1.5s ease-in-out infinite;
         }
-      `}</style>
+      `}</style></div>
     </Layout>
   );
 }

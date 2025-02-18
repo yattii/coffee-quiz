@@ -48,15 +48,15 @@ export default function PasswordPage() {
 
   return (
     <Layout>
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-8">
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-10 mx-8">
 
         {/* ✅ タイトルカード */}
-        <div className="bg-orange-200 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
-          <h1 className="text-2xl md:text-4xl font-bold text-orange-800"><p>イン前３分！</p>コーヒークイズ</h1>
+        <div className="bg-orange-200 p-6 sm:p-8 md:p-10 rounded-lg shadow-md max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center mt-16">
+          <h1 className="text-2xl md:text-4xl font-bold text-orange-800"><p className="text-red-500">イン前３分！</p>コーヒークイズ</h1>
           <p className="text-base md:text-xl text-gray-700 mt-2">楽しく学んでブラックエプロンを取ろう！</p>
         </div>
 
-        <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-xl lg:max-w-2xl w-full">
+        <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-xl lg:max-w-2xl w-full mb-16">
           <h1 className="text-3xl font-bold text-center mb-6">ログイン</h1>
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 

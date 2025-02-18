@@ -1,5 +1,5 @@
 import { db } from "../lib/firebase";
-import { doc, setDoc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection, query, where, } from "firebase/firestore";
 
 interface User {
   userId: string;
@@ -16,7 +16,9 @@ interface QuizResult {
   correctAnswer: string;
   selectedAnswer: string;
   choices: string[];
+  image?: { url: string } | null; // 🔥 `{ url: string } | null` に変更
 }
+
 
 // ✅ Firestore にユーザー情報を保存
 export async function saveUser(userId: string, nickname: string) {
@@ -127,44 +129,80 @@ export async function fetchRankings(): Promise<{ nickname: string; clearCount: n
 // ✅ Firestore にクイズ結果を保存
 export async function saveQuizResult(userId: string, category: string, results: QuizResult[]) {
   try {
-    await setDoc(doc(db, "quizResults", userId), { [category]: results }, { merge: true });
-    console.log(`✅ ユーザー ${userId} のクイズ結果を Firestore に保存:`, results);
+    const formattedResults = results.map(q => ({
+      ...q,
+      image: q.image ? { url: q.image.url } : null, // 🔥 `image` を `{ url: string } | null` に統一
+    }));
+
+    console.log(`✅ Firestore に保存するデータ:`, formattedResults); 
+
+    await setDoc(doc(db, "quizResults", userId), { [category]: formattedResults }, { merge: true });
+    console.log(`✅ ユーザー ${userId} のクイズ結果を Firestore に保存:`, formattedResults);
   } catch (error) {
     console.error(`❌ ユーザー ${userId} のクイズ結果保存に失敗:`, error);
   }
 }
 
+
 // ✅ Firestore からクイズ結果を取得
 export async function fetchQuizResult(userId: string, category: string): Promise<QuizResult[]> {
   try {
     const userDoc = await getDoc(doc(db, "quizResults", userId));
-    return userDoc.exists() ? (userDoc.data()[category] || []) as QuizResult[] : [];
+    if (!userDoc.exists()) return [];
+
+    const data = userDoc.data()[category] || [];
+    
+    // `image` の形式を `{ url: string } | null` に統一
+    return data.map((q: Record<string, unknown>) => ({
+      ...q,
+      image: typeof q.image === "object" && q.image !== null && "url" in q.image ? { url: (q.image as { url: string }).url } : null,
+    }));
+    
   } catch (error) {
     console.error(`❌ ユーザー ${userId} のクイズ結果取得に失敗:`, error);
     return [];
   }
 }
 
+
 // ✅ Firestore に間違えた問題を保存
 export async function saveReviewQuestions(userId: string, reviewQuestions: QuizResult[]) {
   try {
-    await setDoc(doc(db, "reviewQuestions", userId), { questions: reviewQuestions }, { merge: true });
-    console.log(`✅ ユーザー ${userId} の間違えた問題を Firestore に保存:`, reviewQuestions);
+    // `image` の形式を統一して保存
+    const formattedQuestions = reviewQuestions.map(q => ({
+      ...q,
+      image: q.image ? { url: q.image.url } : null, // 🔥 `image` を `{ url: string } | null` に統一
+    }));
+
+    await setDoc(doc(db, "reviewQuestions", userId), { questions: formattedQuestions }, { merge: true });
+    console.log(`✅ ユーザー ${userId} の間違えた問題を Firestore に保存:`, formattedQuestions);
   } catch (error) {
     console.error(`❌ ユーザー ${userId} の間違えた問題保存に失敗:`, error);
   }
 }
 
+
 // ✅ Firestore から間違えた問題を取得
 export async function fetchReviewQuestions(userId: string): Promise<QuizResult[]> {
   try {
     const userDoc = await getDoc(doc(db, "reviewQuestions", userId));
-    return userDoc.exists() ? (userDoc.data().questions || []) as QuizResult[] : [];
+    if (!userDoc.exists()) return [];
+
+    const data = userDoc.data().questions || [];
+    
+    // `image` の形式を `{ url: string } | null` に統一
+    return data.map((q: Record<string, unknown>) => ({
+      ...q,
+      image: typeof q.image === "object" && q.image !== null && "url" in q.image ? { url: (q.image as { url: string }).url } : null,
+    }));
+    
   } catch (error) {
     console.error(`❌ ユーザー ${userId} の間違えた問題取得に失敗:`, error);
     return [];
   }
 }
+
+
 
 
 // ✅ **ニックネームの重複チェック関数**

@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { fetchReviewQuestions } from "@/lib/firestore"; // 🔥 Firestore の関数をインポート
 
 // **復習用問題データの型**
-interface ReviewQuestion {
+interface QuizResult {
   question: string;
   correctAnswer: string;
+  image?: { url: string } | null;
 }
 
 // **カウントダウンの秒数**
@@ -13,7 +16,7 @@ const COUNTDOWN_TIME = 5;
 const START_COUNTDOWN = 3; // ✅ **カウントダウン開始時間**
 
 export default function ReviewPage() {
-  const [reviewQuestions, setReviewQuestions] = useState<ReviewQuestion[]>([]);
+  const [reviewQuestions, setReviewQuestions] = useState<QuizResult[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [feedback, setFeedback] = useState<"showCorrect" | null>(null);
   const [countdown, setCountdown] = useState(START_COUNTDOWN);
@@ -58,7 +61,7 @@ useEffect(() => {
     if (userId) {
       loadReviewQuestions(userId);
     }
-  }, [userId, router]);
+  }, [userId, loadReviewQuestions, router]);
 
   // ✅ **復習開始前のカウントダウン処理**
   useEffect(() => {
@@ -114,25 +117,10 @@ useEffect(() => {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#f5e6ca] text-orange-500">
         <div className="text-center text-6xl md:text-9xl lg:text-10xl font-bold animate-fadeIn">
-          {showStartText ? "🎯 スタート！" : ` ${countdown}`}
+          {showStartText ? " スタート！" : ` ${countdown}`}
         </div>
 
-        {/* フェードインアニメーション */}
-        <style jsx>{`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: scale(0.8);
-            }
-            to {
-              opacity: 1;
-              transform: scale(1);
-            }
-          }
-          .animate-fadeIn {
-            animation: fadeIn 0.8s ease-in-out;
-          }
-        `}</style>
+        
       </div>
     );
   }
@@ -149,24 +137,28 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#f5e6ca] text-gray-900 px-4 pt-12 relative">
-      {/* タイマーエリア */}
-      <div className="w-full max-w-4xl flex justify-center mb-6">
-        <div className="text-3xl md:text-4xl font-bold bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg">
-          {countdown} 秒
-        </div>
-      </div>
+      {/* ✅ カウントダウンバー */}
+      <Timer timeLeft={countdown} currentQuestionIndex={currentQuestionIndex} />
 
       {/* 問題エリア */}
       <div className="relative bg-white p-8 sm:p-10 md:p-16 rounded-lg shadow-xl w-full max-w-4xl text-center">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">{question?.question}</h2>
+        {/* 🔥 画像がある場合は表示 */}
+  {question.image && question.image.url && (
+    <div className="flex justify-center mt-6">
+      <Image src={question.image.url} alt="問題画像" width={400} height={250} className="rounded-lg shadow-md" />
+    </div>
+  )}
       </div>
 
       {/* ✅ **正解を画面中央に表示するカード** */}
       {feedback === "showCorrect" && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-8 sm:p-10 md:p-12 rounded-lg shadow-2xl text-center w-full max-w-md">
+          <div className="bg-white mx-8 p-8 sm:p-10 md:p-12 rounded-lg shadow-2xl text-center w-full max-w-md">
             <span className="text-3xl md:text-4xl font-bold text-green-500"> 正解</span>
             <p className="text-3xl md:text-5xl font-bold mt-6">{question.correctAnswer}</p>
+
+            
 
             {/* ✅ 「次の問題へ」ボタン */}
             <button
@@ -181,3 +173,23 @@ useEffect(() => {
     </div>
   );
 }
+
+const Timer = ({ timeLeft, currentQuestionIndex }: { timeLeft: number; currentQuestionIndex: number }) => {
+  return (
+    <div className="fixed top-4 right-4 z-50 w-64">
+      <div className="relative bg-gray-300 h-6 rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 text-gray-700 flex items-center justify-center text-lg font-bold z-10 mix-blend-difference">
+          {timeLeft} 秒
+        </div>
+        <motion.div
+          key={currentQuestionIndex}
+          className="absolute top-0 left-0 h-full"
+          initial={{ width: "100%" }}
+          animate={{ width: "0%" }}
+          transition={{ duration: 5, ease: "linear" }}
+          style={{ backgroundColor: timeLeft <= 2 ? "red" : "orange" }}
+        />
+      </div>
+    </div>
+  );
+};

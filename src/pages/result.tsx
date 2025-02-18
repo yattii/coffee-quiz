@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
+import Image from "next/image";
 import { saveCategoryAccuracy, saveReviewQuestions } from "@/lib/firestore"; // 🔥 Firestore 対応
 
 interface QuizResult {
@@ -9,6 +10,7 @@ interface QuizResult {
   selectedAnswer: string;
   choices: string[];
   category: string;
+  image?: { url: string } | null;
 }
 
 export default function ResultPage() {
@@ -37,7 +39,13 @@ export default function ResultPage() {
           setFinalScore(correctCount);
 
           // **間違えた問題を Firestore に保存**
-          const incorrectQuestions = parsedResults.filter((q) => q.correctAnswer !== q.selectedAnswer);
+          const incorrectQuestions = parsedResults.filter((q) => q.correctAnswer !== q.selectedAnswer)
+          .map(q => ({
+            ...q,
+            image: q.image ? { url: q.image.url } : null, // 🔥 `image` を明示的にセット
+          }));
+
+
           if (incorrectQuestions.length > 0) {
             setHasReviewQuestions(true);
             if (storedUserId) {
@@ -102,7 +110,11 @@ export default function ResultPage() {
                 <tbody>
                   {quizResults.map((result, index) => (
                     <tr key={index} className="text-center">
-                      <td className="border border-gray-300 p-2 text-sm md:text-lg lg:text-xl">{result.question}</td>
+                      <td className="border border-gray-300 p-2 text-sm md:text-lg lg:text-xl">{result.question}{result.image && result.image.url && (
+          <div className="flex justify-center mt-2">
+            <Image src={result.image.url} alt="問題画像" width={100} height={50} className="rounded-lg shadow-md max-w-xs mt-2" />
+          </div>
+        )}</td>
                       <td className="border border-gray-300 p-2 text-sm md:text-lg lg:text-xl">{result.correctAnswer}</td>
                       <td
                         className={`border border-gray-300 p-2 text-sm md:text-lg lg:text-xl ${
