@@ -183,7 +183,7 @@ const Timer = ({ timeLeft, currentQuestionIndex }: { timeLeft: number; currentQu
         </div>
         <motion.div
           key={currentQuestionIndex}
-          className="absolute top-0 left-0 h-full"
+          className="absolute top-0 right-0 h-full"
           initial={{ width: "100%" }}
           animate={{ width: "0%" }}
           transition={{ duration: 5, ease: "linear" }}

@@ -62,9 +62,11 @@ export default function Layout({ children }: LayoutProps) {
         @keyframes fall {
           0% {
             transform: translateY(-5%) rotate(0deg);
+            opacity: 1;
           }
           100% {
             transform: translateY(110vh) rotate(360deg); /* 画面外まで落下 */
+            opacity: 1;
           }
         }
 
