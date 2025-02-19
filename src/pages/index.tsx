@@ -20,6 +20,10 @@ export default function Home() {
   const [isTransitioning, startTransition] = useTransition();
 
   useEffect(() => {
+    window.scrollTo(0, 0); // 🔥 このページを開いたらスクロールを一番上へ
+  }, []);
+
+  useEffect(() => {
     console.log("🔍 [Home] ページマウント時にデータ取得開始");
 
     const auth = sessionStorage.getItem("authenticated");
@@ -172,7 +176,7 @@ export default function Home() {
 
         {/* ✅ カテゴリー選択 */}
         <div className="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-3xl w-full text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4"> カテゴリーを選択</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">クイズカテゴリーを選択</h2>
           <div className="max-h-[400px] lg:max-h-[500px] overflow-y-auto space-y-3 md:space-y-4">
             {categories.length === 0 ? (
               <p>カテゴリーがありません。</p>
@@ -190,10 +194,14 @@ export default function Home() {
                   >
                     {category} ({accuracy.correctAnswers}/{accuracy.totalAttempts}) {isCleared && "🎉クリア！"}
                   </button>
+                  
                 );
               })
             )}
           </div>
+          <p className="mt-10 text-sm md:text-base lg:text-lg text-gray-500">
+                ※全ての問題を生成AIで作成しています。
+              </p>
         </div>
 
         

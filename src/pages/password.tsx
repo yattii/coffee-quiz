@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { getUser, updateLastLogin } from "../lib/firestore"; // ✅ Firestore を使用
 
-const FIXED_PASSWORD = "1"; // 固定パスワード
+const FIXED_PASSWORD = "4061"; // 固定パスワード
 
 export default function PasswordPage() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    window.scrollTo(0, 0); // 🔥 このページを開いたらスクロールを一番上へ
+  }, []);
 
   // ✅ **ログイン処理**
   const handleLogin = async () => {

@@ -83,6 +83,10 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
 
   const isTimeoutTriggered = useRef(false); // ✅ タイムアウトが連続発火しないように制御
 
+  useEffect(() => {
+    window.scrollTo(0, 0); // 🔥 このページを開いたらスクロールを一番上へ
+  }, []);
+
 
   useEffect(() => {
     if (!quizzes || quizzes.length === 0) return;
@@ -293,7 +297,7 @@ const QuizPage: React.FC<QuizProps> = ({ quizzes = [] }) => {
           </div>
         )}
 
-        <div className="mt-8 md:mt-10 space-y-8 flex flex-col items-center w-full">
+        <div className="mt-8 md:mt-10 space-y-4 flex flex-col items-center w-full">
           {question.choices.map((choice, index) => (
             <button
               key={index}

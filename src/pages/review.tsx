@@ -56,6 +56,10 @@ useEffect(() => {
   }
 }, [router, loadReviewQuestions]); // ✅ loadReviewQuestions を依存配列に追加
 
+useEffect(() => {
+  window.scrollTo(0, 0); // 🔥 このページを開いたらスクロールを一番上へ
+}, []);
+
 
   useEffect(() => {
     if (userId) {
@@ -176,7 +180,7 @@ useEffect(() => {
 
 const Timer = ({ timeLeft, currentQuestionIndex }: { timeLeft: number; currentQuestionIndex: number }) => {
   return (
-    <div className="fixed top-4 right-4 z-50 w-64">
+    <div className="fixed top-4 right-4 z-50 w-64 opacity-85">
       <div className="relative bg-gray-300 h-6 rounded-lg overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 text-gray-700 flex items-center justify-center text-lg font-bold z-10 mix-blend-difference">
           {timeLeft} 秒

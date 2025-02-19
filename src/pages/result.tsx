@@ -22,6 +22,10 @@ export default function ResultPage() {
   const [category, setCategory] = useState<string | null>(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0); // 🔥 このページを開いたらスクロールを一番上へ
+  }, []);
+
+  useEffect(() => {
     console.log("🔄 [データ取得] クイズ結果を取得中...");
     if (typeof window !== "undefined") {
       try {
