@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { getUser, updateLastLogin } from "../lib/firestore"; // ✅ Firestore を使用
 
-const FIXED_PASSWORD = "4061"; // 固定パスワード
+const FIXED_PASSWORD = "1"; // 固定パスワード
 
 export default function PasswordPage() {
   const router = useRouter();
@@ -86,6 +86,7 @@ export default function PasswordPage() {
               placeholder="パスワードを入力"
             />
           </div>
+          <p className="text-sm text-gray-400 text-center pb-8"><p>※問題に企業秘密が含まれているため、</p><p>店舗ノートで共有しているパスワードを入力してください。</p></p>
 
           <button
             onClick={handleLogin}
